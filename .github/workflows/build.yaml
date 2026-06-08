@@ -109,6 +109,10 @@ jobs:
           export RELEASE_TAG=$(date +"%Y%m%d%H%M")
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
           cp $image ./guix-installer-$RELEASE_TAG.iso
+
+          # Split into <2 GiB parts to stay within GitHub Releases limit
+          split -b 1900m ./guix-installer-$RELEASE_TAG.iso ./guix-installer-$RELEASE_TAG.iso.part
+          rm ./guix-installer-$RELEASE_TAG.iso
       - uses: actions/cache/save@v3
         if: always()
         with:
@@ -117,7 +121,7 @@ jobs:
 
       - name: Prepare Release Notes
         run: |
-          echo $'This installer image was prepared with the following channel configuration:\r\n\r\n```\r\n' > release-notes.md
+          echo $'## Download\r\n\r\nThe ISO is split into parts due to GitHub\'s 2 GiB file limit. Reassemble with:\r\n\r\n```bash\r\ncat guix-installer-${{ env.RELEASE_TAG }}.iso.part* > guix-installer.iso\r\n```\r\n\r\n## Channels\r\n\r\nThis installer image was prepared with the following channel configuration:\r\n\r\n```\r\n' > release-notes.md
           cat ./guix/channels.scm >> release-notes.md
           echo $'\r\n```' >> release-notes.md
 
@@ -127,7 +131,7 @@ jobs:
           name: Guix Installer - ${{ env.RELEASE_TAG }}
           tag_name: v${{ env.RELEASE_TAG }}
           body_path: release-notes.md
-          files: guix-installer-${{ env.RELEASE_TAG }}.iso
+          files: guix-installer-${{ env.RELEASE_TAG }}.iso.part*
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
