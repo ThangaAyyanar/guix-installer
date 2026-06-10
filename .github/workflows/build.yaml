@@ -58,7 +58,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v4
       - name: Guix cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/guix
           # use a key that (almost) never matches
@@ -80,6 +80,14 @@ jobs:
                            "2A39 3FFF 68F4 EF7A 3D29  12AF 6F51 20A0 22FB B2D5"))))
                     %default-channels)
 
+      - name: Work around runner permission issue
+        run: |
+          # On Ubuntu 24.04 runners, the per-user profile directory may not
+          # exist for the 'runner' user, causing guix shell/build to fail.
+          # See: https://github.com/PromyLOPh/guix-install-action/issues/30
+          sudo mkdir -p /var/guix/profiles/per-user/runner
+          sudo chown -R runner:users /var/guix/profiles/per-user/runner
+
       - name: Set up Nonguix Substitutes
         run: |
           # This is necessary to authorize the substitute server
@@ -89,10 +97,12 @@ jobs:
 
       - name: Set daemon level Substitutes
         run: |
-          SUBSTITUTE_URLS="https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org"
+          SUBSTITUTE_URLS="https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://nonguix-proxy.ditigal.xyz"
+
+          # The v1.6 service file doesn't include --substitute-urls, so we
+          # append it to the ExecStart line rather than replacing an existing value.
+          sudo sed -i "s|--discover=yes|--discover=yes --substitute-urls='$SUBSTITUTE_URLS'|g" /etc/systemd/system/guix-daemon.service
           
-          sudo sed -i "s|--substitute-urls='https://bordeaux.guix.gnu.org https://ci.guix.gnu.org'|--substitute-urls='$SUBSTITUTE_URLS'|g" /etc/systemd/system/guix-daemon.service
-                
           sudo systemctl daemon-reload
           sudo systemctl restart guix-daemon.service    
     
@@ -113,7 +123,7 @@ jobs:
           # Split into <2 GiB parts to stay within GitHub Releases limit
           split -b 1900m ./guix-installer-$RELEASE_TAG.iso ./guix-installer-$RELEASE_TAG.iso.part
           rm ./guix-installer-$RELEASE_TAG.iso
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         if: always()
         with:
           path: ~/.cache/guix
@@ -126,7 +136,7 @@ jobs:
           echo $'\r\n```' >> release-notes.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Guix Installer - ${{ env.RELEASE_TAG }}
           tag_name: v${{ env.RELEASE_TAG }}
