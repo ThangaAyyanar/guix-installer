@@ -58,7 +58,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v4
       - name: Guix cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/guix
           # use a key that (almost) never matches
@@ -105,7 +105,7 @@ jobs:
           # Split into <2 GiB parts to stay within GitHub Releases limit
           split -b 1900m ./guix-installer-$RELEASE_TAG.iso ./guix-installer-$RELEASE_TAG.iso.part
           rm ./guix-installer-$RELEASE_TAG.iso
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         if: always()
         with:
           path: ~/.cache/guix
@@ -118,7 +118,7 @@ jobs:
           echo $'\r\n```' >> release-notes.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Guix Installer - ${{ env.RELEASE_TAG }}
           tag_name: v${{ env.RELEASE_TAG }}
