@@ -84,7 +84,7 @@
                             %default-authorized-guix-keys))
                     (substitute-urls
                      `(,@%default-substitute-urls
-                       "https://nonguix-proxy.ditigal.xyz"))
+                       "https://substitutes.nonguix.org"))
                     (channels %channels))))))
 
     ;; Add some extra packages useful for the installation process
